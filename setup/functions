@@ -34,6 +34,17 @@ case "$hostType" in
         fi
         ;;
 
+    ubuntu2004)
+        hostTypeLabel="Ubuntu 20.04 LTS"
+        redisService=redis-server
+        apacheConf="/etc/apache2/conf-available/mailtrain.conf"
+        apacheLogsPath="/var/log/apache2"
+
+        if hash ufw 2>/dev/null; then
+            firewallCmdExists=yes
+        fi
+        ;;
+
     debian10)
         hostTypeLabel="Debian 10"
         redisService=redis-server
@@ -163,6 +174,17 @@ EOT
             dnf -y install ImageMagick pwgen gcc-c++ make mongodb-org bzip2
             ;;
 
+
+        ubuntu2004)
+	    apt-get install -y curl wget gnupg
+            curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+            wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+	    echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+            apt-get update
+
+            apt-get install -y mariadb-server build-essential nodejs imagemagick redis pwgen mongodb-org bzip2
+	    installMariaDBFixKeyLength
+            ;;
 
         ubuntu1804)
             curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
@@ -342,7 +364,7 @@ function installHttpd {
             fi
             ;;
 
-        ubuntu1804|debian10)
+        ubuntu2004|ubuntu1804|debian10)
             apt-get install -y apache2
 
             if [ -n "$firewallCmdExists" ]; then
@@ -351,8 +373,7 @@ function installHttpd {
                     ufw allow $port
                 done
             fi
-            ;;
-	    
+            ;;	    
     esac
 }
 
@@ -466,7 +487,7 @@ EOT
             systemctl restart httpd
             ;;
 
-        ubuntu1804|debian10)
+        ubuntu2004|ubuntu1804|debian10)
             a2enmod ssl
             a2enmod rewrite
             a2enmod proxy
@@ -496,7 +517,7 @@ function createCertificates {
             dnf install -y certbot
             ;;
 
-        ubuntu1804|debian10)
+        ubuntu2004|ubuntu1804|debian10)
             apt-get install -y certbot python3-certbot-apache
             ;;
     esac
